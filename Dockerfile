@@ -1,0 +1,23 @@
+FROM python:alpine3.13
+
+WORKDIR /app
+COPY . /app/
+
+RUN pip install pipenv
+COPY Pipfile* /tmp
+RUN pipenv lock --keep-outdated --requirements > requirements.txt
+RUN pip install -r requirements.txt
+
+ENV SWIFT_AUTH_URL=${SWIFT_AUTH_URL} \
+    SWIFT_USERNAME=${SWIFT_AUTH_URL} \
+    SWIFT_PASSWORD=${SWIFT_PASSWORD} \
+    SWIFT_DOMAIN_NAME=${SWIFT_DOMAIN_NAME} \
+    SWIFT_PROJECT_NAME=${SWIFT_PROJECT_NAME} \
+    SWIFT_PROJECT_DOMAINE_NAME=${SWIFT_PROJECT_DOMAINE_NAME} \
+    EXPORTER_TIMOUT_SEC=${EXPORTER_TIMOUT_SEC} \
+    EXPORTER_REQUEST_RATE_SEC=${EXPORTER_REQUEST_RATE_SEC} \
+    OPTIONAL_CONTAINER_TARGET=${OPTIONAL_CONTAINER_TARGET}
+    
+EXPOSE 8000
+
+CMD python -u src/swift_exporter.py -p 8000
