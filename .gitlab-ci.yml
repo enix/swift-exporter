@@ -1,19 +1,24 @@
 stages:
-- build
+  - build
+  - release
 
 variables:
-  CI_REGISTRY: docker-registry.enix.io
-
-variables:
+  GITHUB_REPO: enix/$CI_PROJECT_NAME
   PLATFORMS: linux/amd64,linux/arm64
-  STANDALONE_PLATFORMS: linux/386,linux/arm,linux/arm64,linux/amd64,windows/386,windows/amd64,darwin/amd64
   CACHE_TAG: $CI_REGISTRY_IMAGE:cache
+  IMAGE_TAG_LATEST: $CI_REGISTRY_IMAGE:latest
+  PUBLIC_IMAGE_TAG_LATEST: docker.io/$DOCKER_HUB_REPOSITORY/$CI_PROJECT_NAME:latest
 
 .only-master:
   only:
     - master
   except:
     - tags
+
+.only-semver:
+  only:
+    refs:
+      - /^v([0-9]|[1-9][0-9]*)\.([0-9]|[1-9][0-9]*)\.([0-9]|[1-9][0-9]*)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?$/
 
 .init-docker-buildx:
   variables:
@@ -28,18 +33,48 @@ variables:
     - docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
     - docker buildx create $CI_PIPELINE_ID --name builder --use
     - docker buildx inspect builder
-    - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN $CI_REGISTRY
+    - echo -n "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
+
 
 build:
-  stage: build
   extends:
     - .init-docker-buildx
     - .only-master
-  only:
-    - master
-  image: docker:stable
-  services:
-    - docker:stable-dind
+  stage: build
+  image: docker:stable-dind
   script:
     - export IMAGE_TAG="$CI_REGISTRY_IMAGE:$CI_COMMIT_REF_NAME"
     - docker buildx build --platform "$PLATFORMS" -t "$IMAGE_TAG" --build-arg "VERSION=devel ($CI_COMMIT_SHORT_SHA)" --cache-from $CACHE_TAG --cache-to $CACHE_TAG --push .
+
+build-latest:
+  extends:
+    - .init-docker-buildx
+    - .only-semver
+  stage: build
+  image: docker:stable-dind
+  script:
+    - export IMAGE_TAG="$CI_REGISTRY_IMAGE:${CI_COMMIT_REF_NAME:1}"
+    - docker buildx build --platform "$PLATFORMS" -t "$IMAGE_TAG" -t "$IMAGE_TAG_LATEST" --build-arg "VERSION=${CI_COMMIT_REF_SLUG:1}" --cache-from $CACHE_TAG --cache-to $CACHE_TAG --push .
+
+semantic-release:
+  extends:
+    - .only-master
+  stage: release
+  image: enix/semantic-release:gitlab
+  when: manual
+  script:
+    - "echo \"{\\\"repository\\\": \\\"https://gitlab.enix.io/docker/${GITHUB_REPO}\\\"}\" > package.json"
+    - semantic-release --ci
+
+docker-hub:
+  extends:
+    - .only-semver
+  stage: release
+  image:
+    name: ananace/skopeo:latest
+    entrypoint: [""]
+  script:
+    - export IMAGE_TAG="$CI_REGISTRY_IMAGE:${CI_COMMIT_REF_NAME:1}"
+    - export PUBLIC_IMAGE_TAG="docker.io/$DOCKER_HUB_REPOSITORY/$CI_PROJECT_NAME:${CI_COMMIT_REF_NAME:1}"
+    - skopeo --insecure-policy copy --all --src-creds "$CI_REGISTRY_USER:$CI_REGISTRY_PASSWORD" --dest-creds "$DOCKER_HUB_USER:$DOCKER_HUB_PASSWORD" "docker://${IMAGE_TAG}" "docker://${PUBLIC_IMAGE_TAG}"
+    - skopeo --insecure-policy copy --all --src-creds "$CI_REGISTRY_USER:$CI_REGISTRY_PASSWORD" --dest-creds "$DOCKER_HUB_USER:$DOCKER_HUB_PASSWORD" "docker://${IMAGE_TAG_LATEST}" "docker://${PUBLIC_IMAGE_TAG_LATEST}"
