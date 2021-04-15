@@ -1,0 +1,45 @@
+stages:
+- build
+
+variables:
+  CI_REGISTRY: docker-registry.enix.io
+
+variables:
+  PLATFORMS: linux/amd64,linux/arm64
+  STANDALONE_PLATFORMS: linux/386,linux/arm,linux/arm64,linux/amd64,windows/386,windows/amd64,darwin/amd64
+  CACHE_TAG: $CI_REGISTRY_IMAGE:cache
+
+.only-master:
+  only:
+    - master
+  except:
+    - tags
+
+.init-docker-buildx:
+  variables:
+    DOCKER_CLI_EXPERIMENTAL: enabled
+  services:
+    - docker:20-dind
+  before_script:
+    - mkdir -p ~/.docker/cli-plugins
+    - wget -O ~/.docker/cli-plugins/docker-buildx "https://github.com/docker/buildx/releases/download/v0.5.1/buildx-v0.5.1.linux-amd64"
+    - chmod +x ~/.docker/cli-plugins/docker-buildx
+    - docker context create $CI_PIPELINE_ID
+    - docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+    - docker buildx create $CI_PIPELINE_ID --name builder --use
+    - docker buildx inspect builder
+    - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN $CI_REGISTRY
+
+build:
+  stage: build
+  extends:
+    - .init-docker-buildx
+    - .only-master
+  only:
+    - master
+  image: docker:stable
+  services:
+    - docker:stable-dind
+  script:
+    - export IMAGE_TAG="$CI_REGISTRY_IMAGE:$CI_COMMIT_REF_NAME"
+    - docker buildx build --platform "$PLATFORMS" -t "$IMAGE_TAG" --build-arg "VERSION=devel ($CI_COMMIT_SHORT_SHA)" --cache-from $CACHE_TAG --cache-to $CACHE_TAG --push .
