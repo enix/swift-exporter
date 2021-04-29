@@ -66,19 +66,21 @@ def state_checker(container=None):
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='Prometheus probe for checking Swift Object Storage authentication liveness.')
-    parser.add_argument('-t', '--time', default=1, metavar='time', type=int,
+    parser.add_argument('-r', '--rate', default=1, metavar='rate', type=int,
                         help='the ping rate in seconds')
+    parser.add_argument('-t', '--timout', required=False, default=1, metavar='timout', type=int,
+                        help='each request allowed time (in seconds) before timout error is raised')
     parser.add_argument('-c', '--container', required=False, default=None, metavar='name', type=str,
                         help='the container\'s name you wan\'t to ping')
-    parser.add_argument('-p', '--port', required=False, default=8000, metavar='port', type=int,
-                        help='probe\'s port (default: 8000)')
+    parser.add_argument('-p', '--port', required=False, default=9790, metavar='port', type=int,
+                        help='probe\'s port (default: 9790)')
 
     args = parser.parse_args()
 
-    TIMEOUT = int(os.environ.get('EXPORTER_TIMOUT_SEC')) if 'EXPORTER_TIMOUT_SEC' in os.environ else args.time
+    REQ_TIMEOUT = int(os.environ.get('EXPORTER_REQUEST_TIMOUT_SEC')) if 'EXPORTER_REQUEST_TIMOUT_SEC' in os.environ else args.timout
     REQ_RATE = int(os.environ.get('EXPORTER_REQUEST_RATE_SEC')) if 'EXPORTER_REQUEST_RATE_SEC' in os.environ else args.time
     CONTAINER = os.environ.get('OPTIONAL_CONTAINER_TARGET') if 'OPTIONAL_CONTAINER_TARGET' in os.environ else args.container
-
+    
     # Start up the server to expose the metrics.
     start_http_server(args.port)
     
