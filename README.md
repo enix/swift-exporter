@@ -45,15 +45,16 @@ e.g. : `swift_object_storage_auth_error_total {type="keystoneauth1_exceptions_ht
 For advanced configuration, see the program's `--help` :
 
 ```
-Usage: swift_exporter.py [-h] [-t time] [-c name] [-p port]
+usage: swift_exporter.py [-h] [-r rate] [-t timout] [-c name] [-p port]
 
 Prometheus probe for checking Swift Object Storage authentication liveness.
 
 optional arguments:
   -h, --help            show this help message and exit
-  -t time, --time time  the ping rate in seconds
+  -r rate, --rate rate  the ping rate in seconds
+  -t timout, --timout timout
+                        each request allowed time (in seconds) before timout error is raised
   -c name, --container name
                         the container's name you wan't to ping
-  -p port, --port port  probe's port (default: 8000)
+  -p port, --port port  probe's port (default: 9790)
 ```
-
