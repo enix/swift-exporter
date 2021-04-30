@@ -12,8 +12,6 @@ A Prometheus exporter for Swift Object Storage focusing on authentification moni
 The [Helm chart](https://github.com/enix/helm-charts/tree/master/charts/swift-exporter#-tldr) is the most straightforward way to get a fully-featured exporter running on your cluster.
 The chart is also highly-customizable if you wish to. See the [chart documentation](https://github.com/enix/helm-charts/tree/master/charts/swift-exporter) to learn more.
 
-The provided [Grafana Dashboard](https://grafana.com/grafana/dashboards/13922) can also be used to display the exporter's metrics on your Grafana instance.
-
 ### Using Docker
 
 A docker image is available at [enix/swift-exporter](https://hub.docker.com/r/enix/swift-exporter).
