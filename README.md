@@ -56,5 +56,5 @@ optional arguments:
                         each request allowed time (in seconds) before timout error is raised
   -c name, --container name
                         the container's name you wan't to ping
-  -p port, --port port  probe's port (default: 9790)
+  -p port, --port port  probe's port (default: 9872)
 ```
