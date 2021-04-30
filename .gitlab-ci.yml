@@ -11,7 +11,7 @@ variables:
 
 .only-master:
   only:
-    - master
+    - main
   except:
     - tags
 
