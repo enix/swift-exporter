@@ -64,7 +64,7 @@ semantic-release:
   when: manual
   script:
     - "echo \"{\\\"repository\\\": \\\"https://github.com/${GITHUB_REPO}\\\"}\" > package.json"
-    - semantic-release --ci
+    - semantic-release --ci --branches main
 
 docker-hub:
   extends:
